@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 import statistics
+import time
 import unicodedata
+from dataclasses import astuple
 from itertools import chain, zip_longest
 
 import httpx
@@ -13,7 +16,11 @@ import httpx
 from .models import Listing, Query, SiteResult
 from .sites import SITES, SOLD_SITES
 
-SITE_TIMEOUT = 45.0
+SITE_TIMEOUT = 60.0
+# Agents often repeat a search while refining a question; serve those from memory.
+CACHE_TTL = float(os.environ.get("FURIMA_CACHE_TTL", "300"))
+CACHE_MAX = 256
+_cache: dict[tuple, tuple[float, SiteResult]] = {}
 
 
 def pick_sites(sites: list[str] | None, sold: bool) -> list[str]:
@@ -27,14 +34,22 @@ def pick_sites(sites: list[str] | None, sold: bool) -> list[str]:
 
 
 async def _one(client: httpx.AsyncClient, site: str, q: Query) -> SiteResult:
+    key = (site, *astuple(q))
+    hit = _cache.get(key)
+    if hit and time.monotonic() - hit[0] < CACHE_TTL:
+        return hit[1]
     try:
-        return await asyncio.wait_for(SITES[site].search(client, q), SITE_TIMEOUT)
+        result = await asyncio.wait_for(SITES[site].search(client, q), SITE_TIMEOUT)
     except asyncio.TimeoutError:
         return SiteResult(site=site, error="timed out")
     except httpx.HTTPStatusError as e:
         return SiteResult(site=site, error=f"HTTP {e.response.status_code}")
     except Exception as e:  # one broken site must not sink the others
         return SiteResult(site=site, error=f"{type(e).__name__}: {e}")
+    if len(_cache) >= CACHE_MAX:  # drop the oldest entry; failures are never cached
+        _cache.pop(min(_cache, key=lambda k: _cache[k][0]))
+    _cache[key] = (time.monotonic(), result)
+    return result
 
 
 async def search_sites(client: httpx.AsyncClient, sites: list[str], q: Query) -> list[SiteResult]:

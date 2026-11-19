@@ -4,7 +4,7 @@ import httpx
 import pytest
 import respx
 
-from furima_mcp import server
+from furima_mcp import http, server
 
 from . import fixtures as fx
 
@@ -37,7 +37,8 @@ async def test_search_listings_merges_all_sites(sites):
     assert out["total_matches"]["mercari"] == 2
 
 
-async def test_one_failing_site_is_reported_not_raised(sites):
+async def test_one_failing_site_is_reported_not_raised(sites, monkeypatch):
+    monkeypatch.setattr(http, "MAX_RETRIES", 0)
     sites.get(url__regex=r"https://fril\.jp/s\?").respond(status_code=503)
     out = await server.search_listings("テスト", sites=["rakuma", "paypay"])
     assert out["errors"] == {"rakuma": "HTTP 503"}
