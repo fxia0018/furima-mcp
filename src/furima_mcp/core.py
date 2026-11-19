@@ -1,0 +1,122 @@
+"""Fan a query out to the sites and summarize the results."""
+
+from __future__ import annotations
+
+import asyncio
+import re
+import statistics
+import unicodedata
+from itertools import chain, zip_longest
+
+import httpx
+
+from .models import Listing, Query, SiteResult
+from .sites import SITES, SOLD_SITES
+
+SITE_TIMEOUT = 45.0
+
+
+def pick_sites(sites: list[str] | None, sold: bool) -> list[str]:
+    allowed = SOLD_SITES if sold else tuple(SITES)
+    if not sites:
+        return list(allowed)
+    unknown = [s for s in sites if s not in SITES]
+    if unknown:
+        raise ValueError(f"unknown site(s): {', '.join(unknown)}; choose from {', '.join(SITES)}")
+    return [s for s in sites if s in allowed]
+
+
+async def _one(client: httpx.AsyncClient, site: str, q: Query) -> SiteResult:
+    try:
+        return await asyncio.wait_for(SITES[site].search(client, q), SITE_TIMEOUT)
+    except asyncio.TimeoutError:
+        return SiteResult(site=site, error="timed out")
+    except httpx.HTTPStatusError as e:
+        return SiteResult(site=site, error=f"HTTP {e.response.status_code}")
+    except Exception as e:  # one broken site must not sink the others
+        return SiteResult(site=site, error=f"{type(e).__name__}: {e}")
+
+
+async def search_sites(client: httpx.AsyncClient, sites: list[str], q: Query) -> list[SiteResult]:
+    return list(await asyncio.gather(*(_one(client, s, q) for s in sites)))
+
+
+_PUNCT = re.compile(r"[\s\-_・/･.,、。]+")
+
+
+def normalize(text: str) -> str:
+    """Fold width, case and separators: "ＣＦＩ－２０００" and "cfi2000" compare equal."""
+    return _PUNCT.sub("", unicodedata.normalize("NFKC", text).casefold())
+
+
+def has_all_words(title: str, keyword: str) -> bool:
+    norm = normalize(title)
+    return all(normalize(w) in norm for w in unicodedata.normalize("NFKC", keyword).split())
+
+
+def keep(listing: Listing, exclude: list[str] | None, q: Query, match_all: bool = False) -> bool:
+    if listing.price is None or listing.sold != q.sold:
+        return False
+    # Sites treat price bounds loosely (Yahoo compares the buy-now price, not the bid).
+    if q.min_price and listing.price < q.min_price:
+        return False
+    if q.max_price and listing.price > q.max_price:
+        return False
+    if match_all and not has_all_words(listing.title, q.keyword):
+        return False
+    title = normalize(listing.title)
+    return not any(normalize(w) in title for w in exclude or [] if normalize(w))
+
+
+def merge(
+    results: list[SiteResult], q: Query, exclude: list[str] | None, match_all: bool = False
+) -> list[Listing]:
+    """Filter each site's listings, then combine them in the order `q.sort` asks for."""
+    per_site = [[l for l in r.listings if keep(l, exclude, q, match_all)] for r in results]
+    if q.sort == "price_asc":
+        return sorted(chain(*per_site), key=lambda l: l.price)
+    if q.sort == "price_desc":
+        return sorted(chain(*per_site), key=lambda l: -l.price)
+    # Relevance and newest are each site's own ranking; interleave so no site is buried.
+    return [l for row in zip_longest(*per_site) for l in row if l is not None]
+
+
+def price_stats(prices: list[int]) -> dict:
+    if not prices:
+        return {"count": 0}
+    prices = sorted(prices)
+    out = {"count": len(prices), "min": prices[0], "max": prices[-1]}
+    if len(prices) >= 2:
+        q1, med, q3 = statistics.quantiles(prices, n=4, method="inclusive")
+        out.update(p25=round(q1), median=round(med), p75=round(q3))
+    else:
+        out.update(p25=prices[0], median=prices[0], p75=prices[0])
+    out["mean"] = round(statistics.fmean(prices))
+    return out
+
+
+def percentile_of(price: int, prices: list[int]) -> float | None:
+    """Share of prices strictly below `price`, plus half of the ties, in percent."""
+    if not prices:
+        return None
+    below = sum(p < price for p in prices)
+    ties = sum(p == price for p in prices)
+    return round(100 * (below + ties / 2) / len(prices), 1)
+
+
+def verdict(pct: float | None, count: int) -> str:
+    if pct is None or count < 5:
+        return "not enough sold data to judge"
+    if pct <= 10:
+        return "very cheap: below 90% of recent sales; check condition and authenticity"
+    if pct <= 25:
+        return "cheap: in the bottom quarter of recent sales"
+    if pct < 75:
+        return "typical: within the middle half of recent sales"
+    if pct < 90:
+        return "expensive: in the top quarter of recent sales"
+    return "very expensive: above 90% of recent sales"
+
+
+def errors_of(results: list[SiteResult]) -> dict:
+    return {r.site: r.error for r in results if r.error}
