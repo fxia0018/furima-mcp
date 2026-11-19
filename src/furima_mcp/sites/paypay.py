@@ -16,6 +16,7 @@ from ..models import Listing, Query, SiteResult
 
 NAME = "paypay"
 PAGE_SIZE = 100
+HOSTS = ("paypayfleamarket.yahoo.co.jp",)
 ITEM_URL_PATTERN = re.compile(r"paypayfleamarket\.yahoo\.co\.jp/item/([A-Za-z0-9]+)")
 
 # No working newest-first parameter was found; "newest" falls back to the site's default

@@ -24,6 +24,7 @@ from ..models import Listing, Query, SiteResult
 NAME = "mercari"
 SEARCH_URL = "https://api.mercari.jp/v2/entities:search"
 ITEM_URL = "https://api.mercari.jp/items/get"
+HOSTS = ("jp.mercari.com", "mercari.com", "www.mercari.com")
 ITEM_URL_PATTERN = re.compile(r"mercari\.com/(?:[a-z]{2}/)?(item|shops/product)/([A-Za-z0-9]+)")
 PAGE_SIZE = 120
 

@@ -21,6 +21,7 @@ from ..models import Listing, Query, SiteResult
 
 NAME = "rakuma"
 PAGE_SIZE = 40
+HOSTS = ("item.fril.jp",)
 ITEM_URL_PATTERN = re.compile(r"item\.fril\.jp/([a-z0-9]+)")
 
 _SORT = {

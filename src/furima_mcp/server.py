@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from typing import Annotated, Literal
+from urllib.parse import urlsplit
 
 from mcp.server.mcpserver import MCPServer
 from mcp.types import ToolAnnotations
@@ -34,7 +35,9 @@ READ_ONLY = ToolAnnotations(read_only_hint=True, open_world_hint=True)
 
 mcp = MCPServer("furima", instructions=INSTRUCTIONS, version=__version__)
 
-Keyword = Annotated[str, Field(description="Search keyword, ideally in Japanese.", min_length=1)]
+Keyword = Annotated[
+    str, Field(description="Search keyword, ideally in Japanese.", min_length=1, max_length=200)
+]
 Sites = Annotated[
     list[SiteName] | None,
     Field(description="Sites to search. Default: all that support the operation."),
@@ -50,8 +53,11 @@ MatchAll = Annotated[
     ),
 ]
 Exclude = Annotated[
-    list[str] | None,
-    Field(description="Drop listings whose title contains any of these words (case-insensitive)."),
+    list[Annotated[str, Field(max_length=50)]] | None,
+    Field(
+        description="Drop listings whose title contains any of these words (case-insensitive).",
+        max_length=30,
+    ),
 ]
 
 
@@ -164,21 +170,37 @@ async def check_price(
     }
 
 
+def site_for_url(url: str):
+    """The site module for a listing URL, checked against the URL's real host name."""
+    parts = urlsplit(url.strip())
+    host = (parts.hostname or "").lower()
+    if parts.scheme in ("http", "https"):
+        for site in SITES.values():
+            if host in site.HOSTS and site.ITEM_URL_PATTERN.search(f"{host}{parts.path}"):
+                return site
+    raise ValueError(f"not a supported listing URL; supported sites: {', '.join(SITES)}")
+
+
 @mcp.tool(annotations=READ_ONLY)
 async def get_listing(
     url: Annotated[
-        str, Field(description="A Mercari, Yahoo! Auctions, Yahoo! Flea Market or Rakuma listing URL.")
+        str,
+        Field(
+            description="A Mercari, Yahoo! Auctions, Yahoo! Flea Market or Rakuma listing URL.",
+            max_length=500,
+        ),
     ],
 ) -> dict:
     """Full details of one listing: price, status, condition, description, images and seller."""
+    site = site_for_url(url)
+    parts = urlsplit(url.strip())
     async with new_client() as client:
-        for site in SITES.values():
-            if site.ITEM_URL_PATTERN.search(url):
-                detail = await site.item(client, url)
-                if detail is None:
-                    raise ValueError("could not read the listing page (layout change or removed)")
-                return detail
-    raise ValueError(f"not a supported listing URL; supported sites: {', '.join(SITES)}")
+        # Only the listing id is taken from the URL; each site module requests its own
+        # canonical address, never the URL as given.
+        detail = await site.item(client, f"{parts.hostname}{parts.path}")
+    if detail is None:
+        raise ValueError("could not read the listing page (layout change or removed)")
+    return detail
 
 
 def main() -> None:
