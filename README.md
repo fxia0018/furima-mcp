@@ -1,5 +1,10 @@
 # furima-mcp
 
+[![CI](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+English | [日本語](README.ja.md)
+
 An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or any MCP client search **Mercari**, **Yahoo! Auctions**, **Yahoo! Flea Market** (PayPay Flea Market) and **Rakuma** at once, and check what an item actually sells for.
 
 > **You:** Is ¥30,000 a good price for a Switch OLED?
@@ -9,6 +14,7 @@ An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or a
 - No browser, no login, no API key. Plain HTTP; a search across all four sites takes a few seconds.
 - Prices come from **sold** listings, not asking prices: Yahoo! Auctions final bids, Mercari and Rakuma sold items.
 - One site failing doesn't fail the call. Its error is reported next to the other sites' results.
+- Polite by default: requests to each site are spaced at least 1 s apart, `429`/`503` responses are retried with backoff, and repeated searches are served from a 5-minute cache.
 
 ## Tools
 
@@ -59,7 +65,27 @@ Search in Japanese for best results. Product names and model numbers (`CFI-2000`
 - **Auction prices** (`is_auction: true`) are current bids and may still rise until `ends_at`.
 - **Mercari's `sold_at`** is the item's last update time, which is normally the sale.
 - **Mercari Shops** products show up in search but `get_listing` doesn't support them yet.
-- This is an unofficial tool that reads public pages. Keep request volume reasonable and follow each site's terms of use. If a site changes its pages, the affected site returns an error until the parser is updated; issues and PRs welcome.
+
+## Configuration
+
+Environment variables, all optional:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `FURIMA_MIN_INTERVAL` | `1.0` | Minimum seconds between two requests to the same site. Raising it is fine; lowering it is not recommended. |
+| `FURIMA_CACHE_TTL` | `300` | Seconds a site's search result is reused for an identical query. `0` disables the cache. |
+
+## Responsible use
+
+This tool reads the same public pages a person sees in a browser, one search at a time, on behalf of the person asking. It is meant for personal shopping and price research.
+
+Please don't use it for bulk scraping, for building a database of other people's listings, or for automated buying or reselling. It carries no account, cookie or personal data, and adding any is out of scope. If a site's operator asks for something to change, open an issue and it will be handled.
+
+## Disclaimer
+
+furima-mcp is an independent, unofficial project. It is not affiliated with, endorsed by or sponsored by Mercari, Inc., LY Corporation, Rakuten Group, Inc. or any marketplace it reads. All product names, trademarks and listing content belong to their respective owners.
+
+The sites can change or restrict access at any time, and results may be incomplete, delayed or wrong. Prices and verdicts are informational, not financial or purchasing advice; check the listing itself before you buy. You are responsible for complying with each site's terms of service and the laws that apply to you. The software is provided as is, without warranty of any kind; see [LICENSE](LICENSE).
 
 ## Development
 
