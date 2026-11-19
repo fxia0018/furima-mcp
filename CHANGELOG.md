@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0 (2026-11-19)
 
 - Tools: `search_listings`, `sold_price_stats`, `check_price`, `get_listing`.
 - Sites: Mercari, Yahoo! Auctions, Yahoo! Flea Market, Rakuma.

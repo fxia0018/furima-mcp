@@ -1,9 +1,12 @@
 # furima-mcp
 
 [![CI](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/furima-mcp.svg)](https://pypi.org/project/furima-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 English | [日本語](README.ja.md)
+
+<!-- mcp-name: io.github.fxia0018/furima-mcp -->
 
 An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or any MCP client search **Mercari**, **Yahoo! Auctions**, **Yahoo! Flea Market** (PayPay Flea Market) and **Rakuma** at once, and check what an item actually sells for.
 
@@ -34,7 +37,7 @@ Needs [uv](https://docs.astral.sh/uv/).
 **Claude Code**
 
 ```sh
-claude mcp add furima -- uvx --from git+https://github.com/fxia0018/furima-mcp furima-mcp
+claude mcp add furima -- uvx furima-mcp
 ```
 
 **Claude Desktop, Cursor and others** — add to the client's MCP config (`claude_desktop_config.json`, `.cursor/mcp.json`, ...):
@@ -44,7 +47,7 @@ claude mcp add furima -- uvx --from git+https://github.com/fxia0018/furima-mcp f
   "mcpServers": {
     "furima": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/fxia0018/furima-mcp", "furima-mcp"]
+      "args": ["furima-mcp"]
     }
   }
 }

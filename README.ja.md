@@ -31,7 +31,7 @@
 **Claude Code**
 
 ```sh
-claude mcp add furima -- uvx --from git+https://github.com/fxia0018/furima-mcp furima-mcp
+claude mcp add furima -- uvx furima-mcp
 ```
 
 **Claude Desktop・Cursor など**（`claude_desktop_config.json`、`.cursor/mcp.json` など）
@@ -41,7 +41,7 @@ claude mcp add furima -- uvx --from git+https://github.com/fxia0018/furima-mcp f
   "mcpServers": {
     "furima": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/fxia0018/furima-mcp", "furima-mcp"]
+      "args": ["furima-mcp"]
     }
   }
 }
