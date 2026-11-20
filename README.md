@@ -27,13 +27,13 @@ furima-mcp is an [MCP](https://modelcontextprotocol.io) server: a small plug-in 
 <tr>
 <td width="50%" valign="top">
 
-### 🔍 Four sites, one question
+### Four sites, one question
 Mercari, Yahoo! Auctions, Yahoo! Flea Market and Rakuma searched together in a few seconds. One site being down doesn't stop the others.
 
 </td>
 <td width="50%" valign="top">
 
-### 📊 Real sold prices
+### Real sold prices
 Median, quartiles and range from recent sales, not asking prices. Ask "is ¥30,000 fair?" and get where that price falls.
 
 </td>
@@ -41,13 +41,13 @@ Median, quartiles and range from recent sales, not asking prices. Ask "is ¥30,0
 <tr>
 <td valign="top">
 
-### 🏷️ Compare by condition
+### Compare by condition
 New, like new, scratched... Prices are split by the six-step condition scale every site uses, so a sealed unit isn't compared with a worn one.
 
 </td>
 <td valign="top">
 
-### 🔔 Watch for new listings
+### Watch for new listings
 "Tell me when a cheap one shows up." Each check returns only what went up since the last one.
 
 </td>
