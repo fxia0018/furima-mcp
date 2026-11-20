@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.fxia0018/furima-mcp",
+  "title": "Furima",
+  "description": "Search Mercari, Yahoo! Auctions, Yahoo! Flea Market and Rakuma, and check prices against sold data.",
+  "repository": {
+    "url": "https://github.com/fxia0018/furima-mcp",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "furima-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "FURIMA_MIN_INTERVAL",
+          "description": "Seconds between requests to the same site (default 1.0)",
+          "format": "number",
+          "isRequired": false
+        },
+        {
+          "name": "FURIMA_CACHE_TTL",
+          "description": "Seconds to reuse identical search results; 0 disables the cache (default 300)",
+          "format": "number",
+          "isRequired": false
+        }
+      ]
+    }
+  ]
+}
