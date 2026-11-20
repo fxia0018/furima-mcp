@@ -68,9 +68,9 @@ async def test_successful_results_are_cached_failures_are_not(monkeypatch):
 
     monkeypatch.setattr(core.SITES["rakuma"], "search", fake_search)
     q = Query("x")
-    assert (await core._one(None, "rakuma", q)).error == "RuntimeError: boom"
-    await core._one(None, "rakuma", q)
-    await core._one(None, "rakuma", q)
+    assert (await core._one(None, "rakuma", q, True)).error == "RuntimeError: boom"
+    await core._one(None, "rakuma", q, True)
+    await core._one(None, "rakuma", q, True)
     assert len(calls) == 2
 
 

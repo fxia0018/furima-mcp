@@ -14,6 +14,8 @@ An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or a
 
 - No browser, no login, no API key. Plain HTTP; a search across all four sites takes a few seconds.
 - Prices come from **sold** listings, not asking prices: Yahoo! Auctions final bids, Mercari and Rakuma sold items.
+- Compare like with like: filter by item condition (new, like new, good, ...) and see sold prices broken down by condition.
+- Watch a search for new listings. The server stores nothing; a small cursor carries the state between checks.
 - One site failing doesn't fail the call. Its error is reported next to the other sites' results.
 - Polite by default: requests to each site are spaced at least 1 s apart, `429`/`503` responses are retried with backoff, and repeated searches are served from a 5-minute cache.
 
@@ -21,12 +23,13 @@ An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or a
 
 | Tool | What it does |
 | --- | --- |
-| `search_listings` | Search items for sale now. Filter by site and price, sort by relevance, newest or price across all sites. |
-| `sold_price_stats` | Min / p25 / median / p75 / max of recent sold prices, overall and per site, with example sales. |
-| `check_price` | Where a price falls among recent sales (percentile) and a one-line verdict. |
+| `search_listings` | Search items for sale now. Filter by site, price and condition; sort by relevance, newest or price across all sites. |
+| `new_listings` | Listings put up since the last check, newest first. Call without a cursor to start, then pass back the cursor it returns. |
+| `sold_price_stats` | Min / p25 / median / p75 / max of recent sold prices, overall, per site and per condition, with example sales. |
+| `check_price` | Where a price falls among recent sales of the same condition (percentile) and a one-line verdict. |
 | `get_listing` | Full details of one listing URL: description, condition, images, seller rating, auction end time. |
 
-Every tool takes `exclude` (drop titles containing these words, e.g. `["ジャンク", "箱のみ"]`). The price tools also take `match_all_words` (on by default) because the sites' own search is fuzzy: on Mercari, `PS5 CFI-2000` also returns PS5 games, which would drag the median down to a game's price.
+Every search tool takes `conditions`, on the six-step scale all four sites use: `new` (新品、未使用), `like_new` (未使用に近い), `good` (目立った傷や汚れなし), `fair` (やや傷や汚れあり), `poor` (傷や汚れあり), `bad` (全体的に状態が悪い). They also take `exclude` (drop titles containing these words, e.g. `["ジャンク", "箱のみ"]`). The price tools also take `match_all_words` (on by default) because the sites' own search is fuzzy: on Mercari, `PS5 CFI-2000` also returns PS5 games, which would drag the median down to a game's price.
 
 ## Install
 
@@ -56,14 +59,20 @@ claude mcp add furima -- uvx furima-mcp
 - 「ドラクエ3 SFC 箱説付き」の相場を調べて
 - Find a Pokémon card "ピカチュウ 25th プロモ" under ¥5,000, cheapest first, no PSA-graded ones
 - Compare what a used Sony α7 III body sells for on Yahoo! Auctions vs Mercari
+- What does a sealed, brand-new Switch OLED sell for compared with a used one?
+- Watch for 「ピカチュウ 25th プロモ」 under ¥5,000 and tell me what's new each time I ask
 - Is this a good deal? https://jp.mercari.com/item/m12345678901
 
 Search in Japanese for best results. Product names and model numbers (`CFI-2000`, `ILCE-7M3`) match far better than English descriptions.
 
 ## Notes
 
-- **Sold history** comes from Yahoo! Auctions' closed auctions and Rakuma's sold items (most recent first) and Mercari's sold items (best match first). Yahoo! Flea Market has no public sold history, so it only appears in `search_listings`.
+- **Sold history** comes from Yahoo! Auctions' closed auctions and Rakuma's sold items (most recent first) and Mercari's sold items (best match first). Yahoo! Flea Market has no sold search of its own; its sold items come through the Yahoo! Auctions closed search, labelled `paypay`.
+- **Accuracy.** Prices are the sites' own numbers. The main error is in *what* matches: keyword search pulls in accessories, empty boxes and junk. `match_all_words`, `exclude` and `conditions` keep it close; each site reads up to `sample` recent sales, not the full history.
+- **Shipping.** Mercari and Rakuma prices usually include shipping; Yahoo! Auctions prices often don't, so they can look a little cheaper.
+- **Condition** comes from each listing. Rakuma's search results don't show it, so Rakuma listings carry a condition only when you filter by one (Rakuma is then searched once per condition).
 - **Auction prices** (`is_auction: true`) are current bids and may still rise until `ends_at`.
+- **Watching.** `new_listings` reads the newest 40 listings per site on each check. If more than that went up in between, `may_have_missed` names the site; check more often. It only reports newly listed items, not old ones relisted or price-dropped.
 - **Mercari's `sold_at`** is the item's last update time, which is normally the sale.
 - **Mercari Shops** products show up in search but `get_listing` doesn't support them yet.
 

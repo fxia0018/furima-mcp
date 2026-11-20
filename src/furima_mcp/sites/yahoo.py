@@ -17,6 +17,7 @@ from ..models import Listing, Query, SiteResult
 NAME = "yahoo"
 PAGE_SIZE = 100
 HOSTS = ("auctions.yahoo.co.jp", "page.auctions.yahoo.co.jp")
+PAYPAY_ITEM_URL = "https://paypayfleamarket.yahoo.co.jp/item/"
 ITEM_URL_PATTERN = re.compile(r"auctions\.yahoo\.co\.jp/jp/auction/([A-Za-z0-9]+)")
 
 _SORT = {
@@ -24,6 +25,15 @@ _SORT = {
     "newest": {"s1": "new", "o1": "d"},
     "price_asc": {"s1": "cbids", "o1": "a"},
     "price_desc": {"s1": "cbids", "o1": "d"},
+}
+# Yahoo! Auctions and Yahoo! Flea Market share these codes (Flea Market in lower case).
+CONDITION_OF = {
+    "NEW": "new",
+    "USED10": "like_new",
+    "USED20": "good",
+    "USED40": "fair",
+    "USED60": "poor",
+    "USED80": "bad",
 }
 
 
@@ -37,6 +47,11 @@ def search_url(q: Query, offset: int = 1) -> str:
         params["aucminprice"] = q.min_price
     if q.max_price:
         params["aucmaxprice"] = q.max_price
+    # The search only filters new vs used; finer conditions are filtered on our side.
+    if q.conditions and set(q.conditions) == {"new"}:
+        params["istatus"] = 1
+    elif q.conditions and "new" not in q.conditions:
+        params["istatus"] = 2
     return f"https://auctions.yahoo.co.jp/{path}?{urlencode(params)}"
 
 
@@ -49,21 +64,30 @@ def parse_search(html: str, sold: bool) -> tuple[list[Listing], int | None]:
         aid = it.get("auctionId")
         if not aid:
             continue
-        # A PayPay Flea Market item or a fixed-price listing has a buy price, not a bid.
-        fixed = bool(it.get("isFleamarketItem") or it.get("isFixedPrice"))
+        common = {
+            "id": aid,
+            "title": (it.get("title") or "").strip(),
+            "price": to_int(it.get("price")),
+            "image": it.get("imageUrl"),
+            "condition": CONDITION_OF.get(it.get("itemCondition") or ""),
+            "sold": sold,
+            "listed_at": it.get("startTime"),
+            "sold_at": it.get("endTime") if sold else None,
+        }
+        if it.get("isFleamarketItem"):
+            # Yahoo! Flea Market items show up here too, under the same id. Label them as
+            # paypay so they are not counted twice next to the paypay search.
+            out.append(Listing(site="paypay", url=f"{PAYPAY_ITEM_URL}{aid}", **common))
+            continue
+        fixed = bool(it.get("isFixedPrice"))  # a buy-now price, not a bid
         out.append(
             Listing(
                 site=NAME,
-                id=aid,
-                title=(it.get("title") or "").strip(),
-                price=to_int(it.get("price")),
                 url=f"https://auctions.yahoo.co.jp/jp/auction/{aid}",
-                image=it.get("imageUrl"),
-                sold=sold,
                 is_auction=not sold and not fixed and bool(it.get("endTime")),
                 bids=to_int(it.get("bidCount")) if not fixed else None,
                 ends_at=None if sold else it.get("endTime"),
-                sold_at=it.get("endTime") if sold else None,
+                **common,
             )
         )
     return out, to_int(block.get("totalResultsAvailable"))

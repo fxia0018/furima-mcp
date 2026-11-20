@@ -32,7 +32,9 @@ YAHOO_LIVE_ITEMS = [
         "title": "テスト ぬいぐるみ A ",
         "price": 1200,
         "imageUrl": "https://img.example/a.jpg",
+        "startTime": "2026-11-18T21:00:00+09:00",
         "endTime": "2026-11-20T21:00:00+09:00",
+        "itemCondition": "USED20",
         "bidCount": 3,
     },
     {
@@ -41,13 +43,26 @@ YAHOO_LIVE_ITEMS = [
         "price": 2500,
         "endTime": "2026-12-01T21:00:00+09:00",
         "isFleamarketItem": True,
+        "itemCondition": "NEW",
         "bidCount": 0,
     },
 ]
 
 YAHOO_CLOSED_ITEMS = [
-    {"auctionId": "c1", "title": "落札品 1", "price": 3000, "endTime": "2026-11-18T20:00:00+09:00"},
-    {"auctionId": "c2", "title": "落札品 2", "price": "4,000", "endTime": "2026-11-17T20:00:00+09:00"},
+    {
+        "auctionId": "c1",
+        "title": "落札品 1",
+        "price": 3000,
+        "endTime": "2026-11-18T20:00:00+09:00",
+        "itemCondition": "NEW",
+    },
+    {
+        "auctionId": "c2",
+        "title": "落札品 2",
+        "price": "4,000",
+        "endTime": "2026-11-17T20:00:00+09:00",
+        "itemCondition": "USED40",
+    },
 ]
 
 YAHOO_ITEM = next_data_page(
@@ -102,6 +117,7 @@ PAYPAY_ITEMS = [
         "title": "テスト ぬいぐるみ C",
         "price": 900,
         "thumbnailImageUrl": "https://img.example/c.jpg",
+        "condition": "used10",
         "openTime": "2026-11-19T10:00:00+09:00",
     },
 ]
@@ -135,12 +151,12 @@ PAYPAY_ITEM = next_data_page(
 )
 
 
-def rakuma_card(item_id: str, name: str, price: int, status: str = "販売中") -> str:
+def rakuma_card(item_id: str, name: str, price: int, status: str = "販売中", seq: int = 1000) -> str:
     return f"""
   <div class="item"><div class="item-box">
     <a href="https://item.fril.jp/{item_id}" class="link_search_image"
        title="{name} (おもちゃ)の商品詳細ページへのリンク"
-       onclick="ga('send')" data-rat-itemid="777/{item_id}" data-rat-item_name="{name}"
+       onclick="ga('send')" data-rat-itemid="777/{seq}" data-rat-item_name="{name}"
        data-rat-price="{price}" data-rat-cp-search_sales_status="{status}"
        data-rat-cp-totalresults="2">
       <img src="https://asset.fril.jp/dummy.png" data-original="https://img.fril.jp/img/{item_id}.jpg" alt="{name}">
@@ -151,8 +167,8 @@ def rakuma_card(item_id: str, name: str, price: int, status: str = "販売中") 
 
 RAKUMA_SEARCH = (
     "<html><body>"
-    + rakuma_card("aaa111", "テスト &amp; ぬいぐるみ D", 1500)
-    + rakuma_card("bbb222", "テスト ぬいぐるみ E", 800, "売り切れ")
+    + rakuma_card("aaa111", "テスト &amp; ぬいぐるみ D", 1500, seq=1002)
+    + rakuma_card("bbb222", "テスト ぬいぐるみ E", 800, "売り切れ", seq=1001)
     + "</body></html>"
 )
 
@@ -176,6 +192,7 @@ MERCARI_SEARCH = {
             "name": "テスト ぬいぐるみ F",
             "price": "3000",
             "status": "ITEM_STATUS_ON_SALE",
+            "itemConditionId": "2",
             "created": "1795000000",
             "updated": "1795000100",
             "thumbnails": ["https://static.example/m111.jpg"],

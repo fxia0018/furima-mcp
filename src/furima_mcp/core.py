@@ -33,9 +33,9 @@ def pick_sites(sites: list[str] | None, sold: bool) -> list[str]:
     return [s for s in sites if s in allowed]
 
 
-async def _one(client: httpx.AsyncClient, site: str, q: Query) -> SiteResult:
+async def _one(client: httpx.AsyncClient, site: str, q: Query, use_cache: bool) -> SiteResult:
     key = (site, *astuple(q))
-    hit = _cache.get(key)
+    hit = _cache.get(key) if use_cache else None
     if hit and time.monotonic() - hit[0] < CACHE_TTL:
         return hit[1]
     try:
@@ -52,8 +52,10 @@ async def _one(client: httpx.AsyncClient, site: str, q: Query) -> SiteResult:
     return result
 
 
-async def search_sites(client: httpx.AsyncClient, sites: list[str], q: Query) -> list[SiteResult]:
-    return list(await asyncio.gather(*(_one(client, s, q) for s in sites)))
+async def search_sites(
+    client: httpx.AsyncClient, sites: list[str], q: Query, use_cache: bool = True
+) -> list[SiteResult]:
+    return list(await asyncio.gather(*(_one(client, s, q, use_cache) for s in sites)))
 
 
 _PUNCT = re.compile(r"[\s\-_・/･.,、。]+")
@@ -72,6 +74,8 @@ def has_all_words(title: str, keyword: str) -> bool:
 def keep(listing: Listing, exclude: list[str] | None, q: Query, match_all: bool = False) -> bool:
     if listing.price is None or listing.sold != q.sold:
         return False
+    if q.conditions and listing.condition not in q.conditions:
+        return False
     # Sites treat price bounds loosely (Yahoo compares the buy-now price, not the bid).
     if q.min_price and listing.price < q.min_price:
         return False
@@ -87,7 +91,17 @@ def merge(
     results: list[SiteResult], q: Query, exclude: list[str] | None, match_all: bool = False
 ) -> list[Listing]:
     """Filter each site's listings, then combine them in the order `q.sort` asks for."""
-    per_site = [[l for l in r.listings if keep(l, exclude, q, match_all)] for r in results]
+    # Yahoo! Auctions also returns Yahoo! Flea Market items (labelled paypay, same id) that
+    # the paypay search finds too; keep one copy.
+    seen: set[tuple[str, str]] = set()
+    per_site = []
+    for r in results:
+        rows = []
+        for l in r.listings:
+            if (l.site, l.id) not in seen and keep(l, exclude, q, match_all):
+                seen.add((l.site, l.id))
+                rows.append(l)
+        per_site.append(rows)
     if q.sort == "price_asc":
         return sorted(chain(*per_site), key=lambda l: l.price)
     if q.sort == "price_desc":

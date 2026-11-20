@@ -1,6 +1,8 @@
 import base64
 import json
 
+import httpx
+import respx
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import encode_dss_signature
@@ -18,7 +20,10 @@ def test_yahoo_live_marks_real_auctions_only():
     assert (a.id, a.title, a.price, a.is_auction, a.bids) == ("x100", "テスト ぬいぐるみ A", 1200, True, 3)
     assert a.ends_at == "2026-11-20T21:00:00+09:00" and a.sold_at is None
     assert a.url == "https://auctions.yahoo.co.jp/jp/auction/x100"
-    # a flea-market item surfaced in Yahoo search has a fixed price
+    assert (a.condition, a.listed_at) == ("good", "2026-11-18T21:00:00+09:00")
+    # a Yahoo! Flea Market item surfaced in Yahoo search is labelled as one, not an auction
+    assert (b.site, b.id, b.condition) == ("paypay", "x101", "new")
+    assert b.url == "https://paypayfleamarket.yahoo.co.jp/item/x101"
     assert b.is_auction is False and b.bids is None
 
 
@@ -134,3 +139,46 @@ def test_item_url_patterns():
     assert yahoo.ITEM_URL_PATTERN.search("https://auctions.yahoo.co.jp/jp/auction/x100").group(1) == "x100"
     assert paypay.ITEM_URL_PATTERN.search("https://paypayfleamarket.yahoo.co.jp/item/z1").group(1) == "z1"
     assert rakuma.ITEM_URL_PATTERN.search("https://item.fril.jp/aaa111").group(1) == "aaa111"
+
+
+def test_conditions_parsed_on_every_site():
+    assert mercari.parse_search(fx.MERCARI_SEARCH)[0].condition == "like_new"
+    assert mercari.parse_search(fx.MERCARI_SEARCH)[1].condition is None  # no id given
+    closed, _ = yahoo.parse_search(fx.yahoo_search(fx.YAHOO_CLOSED_ITEMS, 2, "/closedsearch"), sold=True)
+    assert [l.condition for l in closed] == ["new", "fair"]
+    (p,), _ = paypay.parse_search(fx.paypay_search(fx.PAYPAY_ITEMS, 1))
+    assert p.condition == "like_new"
+    cards, _ = rakuma.parse_search(fx.RAKUMA_SEARCH)
+    assert [(c.condition, c.seq) for c in cards] == [(None, 1002), (None, 1001)]
+    assert "seq" not in cards[0].to_dict()
+
+
+def test_condition_filters_in_search_requests():
+    both = Query("x", conditions=("new", "like_new"))
+    assert mercari.search_body(both)["searchCondition"]["itemConditionId"] == [1, 2]
+    assert "itemConditionId" not in mercari.search_body(Query("x"))["searchCondition"]
+    assert "conditions=NEW%2CUSED10" in paypay.search_url(both)
+    # Yahoo's search only splits new from used; the rest is filtered after parsing.
+    assert "istatus=1" in yahoo.search_url(Query("x", conditions=("new",)))
+    assert "istatus=2" in yahoo.search_url(Query("x", conditions=("good", "fair")))
+    assert "istatus" not in yahoo.search_url(both)
+    assert "status=5" in rakuma.search_url(Query("x"), condition="new")
+    assert "status" not in rakuma.search_url(Query("x"))
+
+
+def test_paypay_newest_sorts_by_open_time():
+    assert "sort=openTime&order=desc" in paypay.search_url(Query("x", sort="newest"))
+
+
+async def test_rakuma_searches_once_per_condition_and_tags_listings():
+    with respx.mock() as mock:
+        new = mock.get(url__regex=r"fril\.jp/s\?.*status=5").respond(
+            text=fx.rakuma_card("n1", "テスト 新品", 3000, seq=2)
+        )
+        used = mock.get(url__regex=r"fril\.jp/s\?.*status=6").respond(
+            text=fx.rakuma_card("u1", "テスト 中古", 2000, seq=1)
+        )
+        async with httpx.AsyncClient() as client:
+            res = await rakuma.search(client, Query("x", sort="price_asc", conditions=("new", "good")))
+    assert new.called and used.called
+    assert [(l.id, l.condition) for l in res.listings] == [("u1", "good"), ("n1", "new")]

@@ -68,7 +68,7 @@ async def test_get_listing_routes_by_url(sites):
 async def test_tools_are_registered_read_only():
     tools = await server.mcp.list_tools()
     names = {t.name for t in tools}
-    assert names == {"search_listings", "sold_price_stats", "check_price", "get_listing"}
+    assert names == {"search_listings", "new_listings", "sold_price_stats", "check_price", "get_listing"}
     assert all(t.annotations.read_only_hint for t in tools)
     search = next(t for t in tools if t.name == "search_listings")
     assert "price_asc" in str(search.input_schema)
@@ -102,3 +102,40 @@ def test_help_flag(capsys):
     assert exc.value.code == 0
     out = capsys.readouterr().out
     assert "claude mcp add furima -- uvx furima-mcp" in out
+
+
+async def test_new_listings_starts_then_reports_nothing_new(sites):
+    first = await server.new_listings("テスト", match_all_words=False)
+    assert first["started"] is True and first["count"] > 0
+    # Timed listings come first, newest first; Rakuma (no listing time) after them.
+    times = [l["listed_at"] for l in first["listings"] if "listed_at" in l]
+    assert times == sorted(times, reverse=True)
+    again = await server.new_listings("テスト", cursor=first["cursor"], match_all_words=False)
+    assert again["started"] is False
+    assert again["count"] == 0 and again["may_have_missed"] == []
+
+
+async def test_new_listings_rejects_a_cursor_from_another_query(sites):
+    first = await server.new_listings("テスト")
+    with pytest.raises(ValueError, match="different query"):
+        await server.new_listings("べつ", cursor=first["cursor"])
+
+
+async def test_sold_stats_break_down_by_condition(sites):
+    out = await server.sold_price_stats("落札品", sites=["yahoo"], match_all_words=False)
+    assert out["by_condition"] == {
+        "new": {"count": 1, "min": 3000, "max": 3000, "p25": 3000, "median": 3000, "p75": 3000, "mean": 3000},
+        "fair": {
+            "count": 1,
+            "min": 4000,
+            "max": 4000,
+            "p25": 4000,
+            "median": 4000,
+            "p75": 4000,
+            "mean": 4000,
+        },
+    }
+    only_new = await server.check_price(
+        "落札品", 3500, sites=["yahoo"], conditions=["new"], match_all_words=False
+    )
+    assert only_new["sold_stats"]["count"] == 1

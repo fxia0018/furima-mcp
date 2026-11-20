@@ -12,6 +12,7 @@ from __future__ import annotations
 import html as htmllib
 import json
 import re
+from itertools import chain, zip_longest
 from urllib.parse import urlencode
 
 import httpx
@@ -30,11 +31,13 @@ _SORT = {
     "price_asc": ("sell_price", "asc"),
     "price_desc": ("sell_price", "desc"),
 }
+# Search filter values; the result cards themselves don't show the condition.
+_STATUS = {"new": 5, "like_new": 4, "good": 6, "fair": 3, "poor": 2, "bad": 1}
 _CARD = re.compile(r'<a\s[^>]*class="link_search_image"[^>]*>.*?</a>', re.S)
 _TOTAL = re.compile(r'data-rat-cp-totalresults="(\d+)"')
 
 
-def search_url(q: Query, page: int = 1) -> str:
+def search_url(q: Query, page: int = 1, condition: str | None = None) -> str:
     sort, order = _SORT["newest" if q.sold and q.sort == "relevance" else q.sort]
     params: dict = {
         "query": q.keyword,
@@ -46,6 +49,8 @@ def search_url(q: Query, page: int = 1) -> str:
         params["min"] = q.min_price
     if q.max_price:
         params["max"] = q.max_price
+    if condition:
+        params["status"] = _STATUS[condition]
     if page > 1:
         params["page"] = page
     return f"https://fril.jp/s?{urlencode(params)}"
@@ -64,6 +69,7 @@ def parse_search(html: str) -> tuple[list[Listing], int | None]:
         if not href or not iid or iid in seen:
             continue
         seen.add(iid)
+        numeric = (_attr(card, "data-rat-itemid") or "").rpartition("/")[2]
         out.append(
             Listing(
                 site=NAME,
@@ -73,17 +79,20 @@ def parse_search(html: str) -> tuple[list[Listing], int | None]:
                 url=href,
                 image=_attr(card, "data-original"),
                 sold=_attr(card, "data-rat-cp-search_sales_status") == "売り切れ",
+                seq=int(numeric) if numeric.isdigit() else None,
             )
         )
     m = _TOTAL.search(html or "")
     return out, int(m.group(1)) if m else None
 
 
-async def search(client: httpx.AsyncClient, q: Query) -> SiteResult:
+async def _search(client: httpx.AsyncClient, q: Query, condition: str | None) -> SiteResult:
     res = SiteResult(site=NAME)
     page = 1
     while len(res.listings) < q.limit:
-        listings, total = parse_search(await get_html(client, search_url(q, page)))
+        listings, total = parse_search(await get_html(client, search_url(q, page, condition)))
+        for listing in listings:
+            listing.condition = condition
         res.listings += listings
         res.total = total
         if len(listings) < PAGE_SIZE or (total is not None and page * PAGE_SIZE >= total):
@@ -91,6 +100,21 @@ async def search(client: httpx.AsyncClient, q: Query) -> SiteResult:
         page += 1
     res.listings = res.listings[: q.limit]
     return res
+
+
+async def search(client: httpx.AsyncClient, q: Query) -> SiteResult:
+    if not q.conditions:
+        return await _search(client, q, None)
+    # One search per condition, so every listing knows its condition.
+    parts = [await _search(client, q, c) for c in q.conditions]
+    if q.sort in ("price_asc", "price_desc"):
+        listings = sorted(chain(*(p.listings for p in parts)), key=lambda l: l.price or 0)
+        if q.sort == "price_desc":
+            listings.reverse()
+    else:
+        listings = [l for row in zip_longest(*(p.listings for p in parts)) for l in row if l]
+    total = sum(p.total or 0 for p in parts) if all(p.total is not None for p in parts) else None
+    return SiteResult(site=NAME, listings=listings[: q.limit], total=total)
 
 
 def parse_item(html: str, url: str) -> dict | None:

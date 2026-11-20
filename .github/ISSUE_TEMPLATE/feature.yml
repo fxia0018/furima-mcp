@@ -1,0 +1,16 @@
+name: Feature or site request
+description: Suggest a tool option or another marketplace.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What would you like to do
+      description: The question you'd ask your assistant, and what's missing today.
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Marketplace (for site requests)
+      description: Note whether it needs a login or sits behind a bot check; those are out of scope.

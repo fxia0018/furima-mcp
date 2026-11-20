@@ -34,6 +34,8 @@ _SORT = {
     "price_asc": ("SORT_PRICE", "ORDER_ASC"),
     "price_desc": ("SORT_PRICE", "ORDER_DESC"),
 }
+_CONDITION_IDS = {"new": 1, "like_new": 2, "good": 3, "fair": 4, "poor": 5, "bad": 6}
+_CONDITION_OF = {str(v): k for k, v in _CONDITION_IDS.items()}
 
 
 def _b64(raw: bytes) -> str:
@@ -92,6 +94,8 @@ def search_body(q: Query, page_token: str = "") -> dict:
         cond["priceMin"] = q.min_price
     if q.max_price:
         cond["priceMax"] = q.max_price
+    if q.conditions:
+        cond["itemConditionId"] = [_CONDITION_IDS[c] for c in q.conditions]
     return {
         "pageSize": PAGE_SIZE,
         "pageToken": page_token,
@@ -126,6 +130,7 @@ def parse_search(data: dict) -> list[Listing]:
                 price=to_int(it.get("price")),
                 url=f"https://jp.mercari.com/{path}",
                 image=thumbs[0] if thumbs else None,
+                condition=_CONDITION_OF.get(str(it.get("itemConditionId"))),
                 sold=sold,
                 is_auction=bool(auction) and not sold,
                 bids=to_int(auction.get("totalBid")) if auction else None,

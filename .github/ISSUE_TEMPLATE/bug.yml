@@ -1,0 +1,31 @@
+name: Bug report
+description: A tool returns wrong results, an error, or nothing for a site.
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `uvx furima-mcp --version`
+      placeholder: furima-mcp 0.2.0
+    validations:
+      required: true
+  - type: dropdown
+    id: site
+    attributes:
+      label: Site
+      options: [Mercari, Yahoo! Auctions, Yahoo! Flea Market, Rakuma, All / not site-specific]
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The tool, its arguments, and what you got back (the `errors` field helps most). Expected result, if you know it.
+    validations:
+      required: true
+  - type: input
+    id: client
+    attributes:
+      label: MCP client
+      placeholder: Claude Code, Claude Desktop, Cursor, ...

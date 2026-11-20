@@ -1,7 +1,8 @@
 """Yahoo! Flea Market (paypayfleamarket.yahoo.co.jp), formerly PayPay Flea Market.
 
 Fixed-price C2C, like Mercari. Search results are in __NEXT_DATA__. The site has no
-searchable sold history, so it only answers live searches.
+searchable sold history of its own; sold Flea Market items come back through the Yahoo!
+Auctions closed search instead (see yahoo.py).
 """
 
 from __future__ import annotations
@@ -13,17 +14,17 @@ import httpx
 
 from ..http import dig, get_html, next_data, to_int
 from ..models import Listing, Query, SiteResult
+from .yahoo import CONDITION_OF
 
 NAME = "paypay"
 PAGE_SIZE = 100
 HOSTS = ("paypayfleamarket.yahoo.co.jp",)
 ITEM_URL_PATTERN = re.compile(r"paypayfleamarket\.yahoo\.co\.jp/item/([A-Za-z0-9]+)")
 
-# No working newest-first parameter was found; "newest" falls back to the site's default
-# order and the merged results are re-sorted locally.
+_CODE = {v: k for k, v in CONDITION_OF.items()}
 _SORT = {
     "relevance": {},
-    "newest": {},
+    "newest": {"sort": "openTime", "order": "desc"},
     "price_asc": {"sort": "price", "order": "asc"},
     "price_desc": {"sort": "price", "order": "desc"},
 }
@@ -35,6 +36,8 @@ def search_url(q: Query, page: int = 1) -> str:
         params["minPrice"] = q.min_price
     if q.max_price:
         params["maxPrice"] = q.max_price
+    if q.conditions:
+        params["conditions"] = ",".join(_CODE[c] for c in q.conditions)
     if page > 1:
         params["page"] = page
     return f"https://paypayfleamarket.yahoo.co.jp/search/{quote(q.keyword, safe='')}?{urlencode(params)}"
@@ -57,6 +60,7 @@ def parse_search(html: str) -> tuple[list[Listing], int | None]:
                 price=to_int(it.get("price")),
                 url=f"https://paypayfleamarket.yahoo.co.jp/item/{iid}",
                 image=it.get("thumbnailImageUrl"),
+                condition=CONDITION_OF.get(str(it.get("condition") or "").upper()),
                 listed_at=it.get("openTime"),
             )
         )

@@ -1,6 +1,6 @@
 [project]
 name = "furima-mcp"
-version = "0.1.1"
+version = "0.2.0"
 description = "MCP server for Japanese second-hand marketplaces: search Mercari, Yahoo! Auctions, Yahoo! Flea Market and Rakuma, and check what things actually sell for."
 readme = "README.md"
 license = "MIT"

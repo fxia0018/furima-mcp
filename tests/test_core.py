@@ -64,3 +64,22 @@ def test_pick_sites():
     assert pick_sites(["paypay", "yahoo"], sold=True) == ["yahoo"]
     with pytest.raises(ValueError, match="unknown site"):
         pick_sites(["ebay"], sold=False)
+
+
+def test_merge_keeps_only_requested_conditions():
+    good, fair, unknown = L("mercari", 1), L("mercari", 2), L("mercari", 3)
+    good.condition, fair.condition = "good", "fair"
+    q = Query("item", conditions=("good",))
+    assert merge([SiteResult("mercari", [good, fair, unknown])], q, None) == [good]
+
+
+def test_merge_drops_flea_market_duplicates_from_yahoo():
+    # Yahoo! Auctions returns Yahoo! Flea Market items under the paypay label and same id.
+    from_paypay = Listing(site="paypay", id="z1", title="item", price=500, url="u")
+    via_yahoo = Listing(site="paypay", id="z1", title="item", price=500, url="u")
+    out = merge(
+        [SiteResult("yahoo", [via_yahoo, L("yahoo", 900)]), SiteResult("paypay", [from_paypay])],
+        Query("item"),
+        None,
+    )
+    assert sorted((l.site, l.id) for l in out) == [("paypay", "z1"), ("yahoo", "yahoo900")]
