@@ -67,11 +67,11 @@ flowchart LR
 ```
 
 | Site | For sale now | Sold prices | Item condition |
-| --- | :---: | :---: | :---: |
-| Mercari | ✅ | ✅ | ✅ |
-| Yahoo! Auctions | ✅ | ✅ final bids | ✅ |
-| Yahoo! Flea Market | ✅ | ✅ via Yahoo! Auctions | ✅ |
-| Rakuma | ✅ | ✅ | ✅ when you filter by it |
+| --- | --- | --- | --- |
+| Mercari | yes | yes | yes |
+| Yahoo! Auctions | yes | yes (final bids) | yes |
+| Yahoo! Flea Market | yes | yes (through Yahoo! Auctions) | yes |
+| Rakuma | yes | yes | only when you filter by it |
 
 ## Quick start
 
@@ -141,8 +141,7 @@ Then use `"command": "docker", "args": ["run", "-i", "--rm", "furima-mcp"]` in t
 - Watch for Sony α7 III bodies under ¥120,000 and tell me what's new each time I ask
 - Is this a good deal? https://jp.mercari.com/item/m12345678901
 
-> [!TIP]
-> Search in Japanese. Product names and model numbers (`CFI-2000`, `ILCE-7M3`) match far better than English descriptions.
+Search in Japanese. Product names and model numbers (`CFI-2000`, `ILCE-7M3`) match far better than English descriptions.
 
 ## FAQ
 
