@@ -87,3 +87,18 @@ def test_http_client_follows_redirects():
 
     assert new_client().follow_redirects is True
     assert isinstance(new_client(), httpx.AsyncClient)
+
+
+def test_version_flag(capsys):
+    with pytest.raises(SystemExit) as exc:
+        server.main(["--version"])
+    assert exc.value.code == 0
+    assert capsys.readouterr().out.strip() == f"furima-mcp {server.__version__}"
+
+
+def test_help_flag(capsys):
+    with pytest.raises(SystemExit) as exc:
+        server.main(["--help"])
+    assert exc.value.code == 0
+    out = capsys.readouterr().out
+    assert "claude mcp add furima -- uvx furima-mcp" in out

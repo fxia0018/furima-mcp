@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import argparse
+import contextlib
 import logging
+import sys
 from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
@@ -203,9 +206,43 @@ async def get_listing(
     return detail
 
 
-def main() -> None:
+DESCRIPTION = """\
+MCP server for Japanese second-hand marketplaces (Mercari, Yahoo! Auctions,
+Yahoo! Flea Market, Rakuma). It talks MCP over stdin/stdout, so it is meant to
+be started by an MCP client rather than run by hand.
+
+Claude Code:
+  claude mcp add furima -- uvx furima-mcp
+
+Claude Desktop, Cursor and others:
+  {"mcpServers": {"furima": {"command": "uvx", "args": ["furima-mcp"]}}}
+
+Environment:
+  FURIMA_MIN_INTERVAL  seconds between requests to the same site (default 1.0)
+  FURIMA_CACHE_TTL     seconds to reuse identical searches, 0 to disable (default 300)
+"""
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(
+        prog="furima-mcp",
+        description=DESCRIPTION,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="https://github.com/fxia0018/furima-mcp",
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    parser.parse_args(argv)
+
+    if sys.stdin.isatty():
+        # stdout carries the protocol, so the hint goes to stderr.
+        print(
+            "furima-mcp is waiting for an MCP client on stdin. "
+            "Add it to your client instead (see --help). Ctrl+C to quit.",
+            file=sys.stderr,
+        )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    mcp.run()
+    with contextlib.suppress(KeyboardInterrupt):
+        mcp.run()
 
 
 if __name__ == "__main__":

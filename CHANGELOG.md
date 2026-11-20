@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 (2026-11-20)
+
+- `furima-mcp --help` and `--version`. Running it by hand in a terminal now prints a hint instead of waiting silently.
+- README: demo GIF.
+
 ## 0.1.0 (2026-11-19)
 
 - Tools: `search_listings`, `sold_price_stats`, `check_price`, `get_listing`.
