@@ -10,9 +10,7 @@ English | [日本語](README.ja.md)
 
 An MCP server for Japanese second-hand marketplaces. It lets Claude, Cursor or any MCP client search **Mercari**, **Yahoo! Auctions**, **Yahoo! Flea Market** (PayPay Flea Market) and **Rakuma** at once, and check what an item actually sells for.
 
-> **You:** Is ¥30,000 a good price for a Switch OLED?
->
-> **Claude:** *(calls `check_price`)* Not really. Across 214 recent sales on Mercari, Yahoo! Auctions and Rakuma the median was ¥25,000 and the middle half sold for ¥22,000–28,000. ¥30,000 is dearer than 82% of them.
+![Claude Code calling furima-mcp to check a Switch OLED price](https://raw.githubusercontent.com/fxia0018/furima-mcp/main/docs/demo.gif)
 
 - No browser, no login, no API key. Plain HTTP; a search across all four sites takes a few seconds.
 - Prices come from **sold** listings, not asking prices: Yahoo! Auctions final bids, Mercari and Rakuma sold items.
