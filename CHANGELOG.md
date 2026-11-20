@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.1 (2026-11-20)
+
+- Live tests now cover every site: for-sale search, sold search, listing details and the condition filter. A daily workflow runs them against the real sites and keeps an issue open while one is failing.
+- One-click Claude Desktop extension (`.mcpb`) attached to each GitHub release.
+- README rewritten for first-time users (quick start, FAQ), plus a Chinese translation and a new demo.
+
 ## 0.2.0 (2026-11-20)
 
 - Item condition: every listing carries its condition (`new`, `like_new`, `good`, `fair`, `poor`, `bad`), every search tool takes `conditions`, and `sold_price_stats` adds `by_condition`.

@@ -86,7 +86,14 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 **2. 加到你的 AI 应用里。** 选你用的那个：
 
 <details open>
-<summary><b>Claude Desktop</b></summary>
+<summary><b>Claude Desktop 一键安装</b>（不需要 uv）</summary>
+
+从[最新版本](https://github.com/fxia0018/furima-mcp/releases/latest)下载 `furima-mcp-<版本号>.mcpb`，双击打开，在弹出的窗口里点 **Install**。这样第 1 步可以跳过。
+
+</details>
+
+<details>
+<summary><b>Claude Desktop 手动配置</b></summary>
 
 打开 **设置（Settings）→ 开发者（Developer）→ Edit Config**，会打开 `claude_desktop_config.json`。把下面的内容粘进去（文件里已经有 `mcpServers` 的话，加到里面），保存后重启 Claude Desktop：
 

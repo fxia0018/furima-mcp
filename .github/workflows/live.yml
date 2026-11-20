@@ -1,0 +1,58 @@
+name: Live check
+
+# The sites change their pages without notice. Run the live tests once a day and keep
+# one open issue while something is broken, closing it when the checks pass again.
+on:
+  schedule:
+    - cron: "41 22 * * *"  # 07:41 in Japan
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync
+      - name: Run live tests
+        id: tests
+        run: uv run pytest -m live -q -rf --no-header 2>&1 | tee result.txt; exit "${PIPESTATUS[0]}"
+        continue-on-error: true
+
+      - name: Open or update the issue
+        if: steps.tests.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          {
+            echo "The daily check against the real sites failed. A site has probably changed its pages."
+            echo
+            echo '```'
+            grep -E '^(FAILED|ERROR)|passed|failed' result.txt | tail -20
+            echo '```'
+            echo
+            echo "Run: $RUN_URL"
+          } > body.md
+          number=$(gh issue list --label live-check --state open --json number -q '.[0].number')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file body.md
+          else
+            gh label create live-check --color B60205 --description "Daily live check failed" 2>/dev/null || true
+            gh issue create --title "Live check failing" --label live-check --body-file body.md
+          fi
+          exit 1
+
+      - name: Close the issue when fixed
+        if: steps.tests.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for number in $(gh issue list --label live-check --state open --json number -q '.[].number'); do
+            gh issue close "$number" --comment "Live checks pass again: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          done

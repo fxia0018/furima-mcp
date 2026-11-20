@@ -31,6 +31,8 @@ jobs:
         with:
           name: dist
           path: dist/
+      - name: Claude Desktop extension
+        run: mcpb/build.sh
       - name: Release notes from CHANGELOG.md
         run: |
           version="${GITHUB_REF_NAME#v}"

@@ -74,14 +74,6 @@ async def test_tools_are_registered_read_only():
     assert "price_asc" in str(search.input_schema)
 
 
-@pytest.mark.live
-async def test_live_smoke():
-    out = await server.search_listings("ピカチュウ ぬいぐるみ", limit_per_site=5)
-    assert out["errors"] == {}, out["errors"]
-    assert {l["site"] for l in out["listings"]} == {"mercari", "yahoo", "paypay", "rakuma"}
-    assert all(isinstance(l["price"], int) for l in out["listings"])
-
-
 def test_http_client_follows_redirects():
     from furima_mcp.http import new_client
 

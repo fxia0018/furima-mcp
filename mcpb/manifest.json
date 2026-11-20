@@ -1,0 +1,43 @@
+{
+  "manifest_version": "0.4",
+  "name": "furima-mcp",
+  "display_name": "furima: Japan second-hand prices",
+  "version": "0.0.0",
+  "description": "Search Mercari, Yahoo! Auctions, Yahoo! Flea Market and Rakuma, and check prices against what items actually sold for.",
+  "long_description": "Searches Japan's four big second-hand marketplaces at once. Get median and quartiles of recent sold prices, split by item condition; judge whether a price is fair; and watch a search for new listings. Read-only: no account, cookie or API key, and requests to each site are spaced out.",
+  "author": {
+    "name": "fxia0018",
+    "url": "https://github.com/fxia0018"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fxia0018/furima-mcp"
+  },
+  "homepage": "https://github.com/fxia0018/furima-mcp",
+  "documentation": "https://github.com/fxia0018/furima-mcp#readme",
+  "support": "https://github.com/fxia0018/furima-mcp/issues",
+  "icon": "icon.png",
+  "server": {
+    "type": "uv",
+    "entry_point": "main.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": ["run", "--directory", "${__dirname}", "main.py"]
+    }
+  },
+  "tools": [
+    {"name": "search_listings", "description": "Search items for sale now across the four sites."},
+    {"name": "new_listings", "description": "Listings put up since the last check."},
+    {"name": "sold_price_stats", "description": "Sold-price statistics, per site and per condition."},
+    {"name": "check_price", "description": "Where a price falls among recent sales."},
+    {"name": "get_listing", "description": "Full details of one listing URL."}
+  ],
+  "keywords": ["japan", "mercari", "yahoo-auctions", "rakuma", "price-comparison", "shopping"],
+  "license": "MIT",
+  "compatibility": {
+    "platforms": ["darwin", "linux", "win32"],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}

@@ -88,7 +88,14 @@ powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | ie
 **2. Add furima-mcp to your AI app.** Pick yours:
 
 <details open>
-<summary><b>Claude Desktop</b></summary>
+<summary><b>Claude Desktop, one click</b> (no uv needed)</summary>
+
+Download `furima-mcp-<version>.mcpb` from the [latest release](https://github.com/fxia0018/furima-mcp/releases/latest) and double-click it. Claude Desktop shows an install dialog; click **Install**. You can skip step 1.
+
+</details>
+
+<details>
+<summary><b>Claude Desktop, by hand</b></summary>
 
 Open **Settings → Developer → Edit Config**. That opens `claude_desktop_config.json`. Paste this in (merge it if the file already has `mcpServers`), save, and restart Claude Desktop:
 
@@ -238,7 +245,7 @@ The sites can change or restrict access at any time, and results may be incomple
 git clone https://github.com/fxia0018/furima-mcp && cd furima-mcp
 uv sync
 uv run pytest            # offline tests against hand-written page fixtures
-uv run pytest -m live    # one smoke test against the real sites
+uv run pytest -m live    # checks against the real sites (also run daily in CI)
 ```
 
 Each site is one module in `src/furima_mcp/sites/` with a `search(client, query)` and an `item(client, url)`. Adding a site means adding a module there and registering it in `sites/__init__.py`. Bug reports and site requests are welcome in [Issues](https://github.com/fxia0018/furima-mcp/issues).

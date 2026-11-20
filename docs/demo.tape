@@ -26,7 +26,7 @@ Enter
 Sleep 6s
 Show
 
-Type "Is ¥30,000 a good price for a used Switch OLED?"
+Type "Is ¥30,000 a good price for a used Switch OLED? And what does a new one go for?"
 Sleep 600ms
 Enter
 Wait+Screen@90s /· done /
