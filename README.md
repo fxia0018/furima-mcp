@@ -13,7 +13,7 @@ Mercari · Yahoo! Auctions · Yahoo! Flea Market · Rakuma
 [![Python](https://img.shields.io/pypi/pyversions/furima-mcp.svg)](https://pypi.org/project/furima-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-English | [日本語](README.ja.md)
+English | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
 </div>
 
