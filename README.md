@@ -1,5 +1,7 @@
 # furima-mcp
 
+<img src="https://raw.githubusercontent.com/fxia0018/furima-mcp/main/docs/logo.png" alt="" width="96" align="right">
+
 [![CI](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/fxia0018/furima-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/furima-mcp.svg)](https://pypi.org/project/furima-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -53,6 +55,14 @@ claude mcp add furima -- uvx furima-mcp
   }
 }
 ```
+
+**Docker** — no Python needed:
+
+```sh
+docker build -t furima-mcp https://github.com/fxia0018/furima-mcp.git
+```
+
+then use `"command": "docker", "args": ["run", "-i", "--rm", "furima-mcp"]` in the config above.
 
 ## Things to ask
 

@@ -1,5 +1,7 @@
 # furima-mcp
 
+<img src="https://raw.githubusercontent.com/fxia0018/furima-mcp/main/docs/logo.png" alt="" width="96" align="right">
+
 [English](README.md) | 日本語
 
 メルカリ・ヤフオク・Yahoo!フリマ（旧 PayPayフリマ）・ラクマをまとめて検索し、実際の落札・売却価格から相場を調べられる MCP サーバーです。Claude や Cursor など、MCP に対応した AI クライアントから使えます。
@@ -51,6 +53,14 @@ claude mcp add furima -- uvx furima-mcp
   }
 }
 ```
+
+**Docker**（Python 不要）
+
+```sh
+docker build -t furima-mcp https://github.com/fxia0018/furima-mcp.git
+```
+
+上の設定で `"command": "docker", "args": ["run", "-i", "--rm", "furima-mcp"]` を使います。
 
 ## 使い方の例
 
