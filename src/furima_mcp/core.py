@@ -124,6 +124,42 @@ def price_stats(prices: list[int]) -> dict:
     return out
 
 
+OUTLIER_MIN_COUNT = 8  # below this, quartiles are too unstable to call anything an outlier
+
+
+def split_outliers(prices: list[int]) -> tuple[list[int], list[int]]:
+    """Split prices into (kept, outliers) with Tukey's fences (1.5 IQR beyond the quartiles).
+
+    Keyword matches on sold listings pull in accessories and parts (far below) and bulk
+    lots or misattributed models (far above). Small samples are returned unchanged.
+    """
+    if len(prices) < OUTLIER_MIN_COUNT:
+        return list(prices), []
+    q1, _, q3 = statistics.quantiles(prices, n=4, method="inclusive")
+    lo, hi = q1 - 1.5 * (q3 - q1), q3 + 1.5 * (q3 - q1)
+    kept = [p for p in prices if lo <= p <= hi]
+    return kept, [p for p in prices if not lo <= p <= hi]
+
+
+def robust_stats(prices: list[int], drop_outliers: bool) -> dict:
+    """price_stats, after dropping outliers when asked; says how many were dropped."""
+    if not drop_outliers:
+        return price_stats(prices)
+    kept, out = split_outliers(prices)
+    stats = price_stats(kept)
+    if out:
+        stats["outliers_dropped"] = len(out)
+    return stats
+
+
+def sold_between(listings: list[Listing]) -> dict | None:
+    """Oldest and newest sale date among listings that carry one (Rakuma shows none)."""
+    dates = sorted(l.sold_at[:10] for l in listings if l.sold_at)
+    if not dates:
+        return None
+    return {"oldest": dates[0], "newest": dates[-1], "dated": len(dates)}
+
+
 def percentile_of(price: int, prices: list[int]) -> float | None:
     """Share of prices strictly below `price`, plus half of the ties, in percent."""
     if not prices:

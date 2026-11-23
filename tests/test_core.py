@@ -1,6 +1,16 @@
 import pytest
 
-from furima_mcp.core import has_all_words, merge, percentile_of, pick_sites, price_stats, verdict
+from furima_mcp.core import (
+    has_all_words,
+    merge,
+    percentile_of,
+    pick_sites,
+    price_stats,
+    robust_stats,
+    sold_between,
+    split_outliers,
+    verdict,
+)
 from furima_mcp.models import Listing, Query, SiteResult
 
 
@@ -46,6 +56,26 @@ def test_price_stats():
         300,
     )
     assert price_stats([700])["median"] == 700
+
+
+def test_outliers_are_dropped_only_from_large_enough_samples():
+    # PS5 sold prices: a 1,000 yen stand and a 15-console bulk lot around real sales
+    prices = [1000, 68000, 70000, 72000, 74000, 74000, 76000, 78000, 140000]
+    kept, out = split_outliers(prices)
+    assert out == [1000, 140000] and kept == prices[1:-1]
+    s = robust_stats(prices, drop_outliers=True)
+    assert (s["count"], s["min"], s["max"], s["outliers_dropped"]) == (7, 68000, 78000, 2)
+    assert "outliers_dropped" not in robust_stats(prices, drop_outliers=False)
+    assert robust_stats(prices, drop_outliers=False)["min"] == 1000
+    # under 8 sales nothing is called an outlier
+    assert split_outliers([1000, 70000, 71000, 72000, 140000]) == ([1000, 70000, 71000, 72000, 140000], [])
+
+
+def test_sold_between_spans_dated_sales_only():
+    a, b, c = L("yahoo", 1), L("mercari", 2), L("rakuma", 3)
+    a.sold_at, b.sold_at = "2026-11-20T08:54:05+09:00", "2026-01-16T14:27:16+09:00"
+    assert sold_between([a, b, c]) == {"oldest": "2026-01-16", "newest": "2026-11-20", "dated": 2}
+    assert sold_between([c]) is None
 
 
 def test_percentile_and_verdict():

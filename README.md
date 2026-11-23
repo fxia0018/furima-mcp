@@ -197,7 +197,7 @@ What the assistant calls behind the scenes. You don't need to call these yoursel
 | --- | --- |
 | `search_listings` | Search items for sale now. Filter by site, price and condition; sort by relevance, newest or price across all sites. |
 | `new_listings` | Listings put up since the last check, newest first. Call without a cursor to start, then pass back the cursor it returns. |
-| `sold_price_stats` | Min / p25 / median / p75 / max of recent sold prices, overall, per site and per condition, with example sales. |
+| `sold_price_stats` | Min / p25 / median / p75 / max of recent sold prices, overall, per site and per condition, with example sales and the date range of the sales. Extreme prices (accessories, bulk lots) are left out by default. |
 | `check_price` | Where a price falls among recent sales of the same condition (percentile) and a one-line verdict. |
 | `get_listing` | Full details of one listing URL: description, condition, images, seller rating, auction end time. |
 
