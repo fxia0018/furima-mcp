@@ -13,6 +13,8 @@
 [![Python](https://img.shields.io/pypi/pyversions/furima-mcp.svg)](https://pypi.org/project/furima-mcp/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+<a href="https://glama.ai/mcp/servers/fxia0018/furima-mcp"><img width="380" height="200" src="https://glama.ai/mcp/servers/fxia0018/furima-mcp/badge" alt="furima-mcp MCP server on Glama" /></a>
+
 [English](README.md) | [日本語](README.ja.md) | 中文
 
 </div>
