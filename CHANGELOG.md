@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `sold_price_stats` and `check_price` leave out extreme prices by default (Tukey's fences, 1.5 IQR beyond the quartiles, only with 8+ sales) and report how many as `outliers_dropped`. Keyword matches on sold listings pull in accessories, parts and bulk lots: on live data for "PS5 CFI-2000" this removed a 1,000 yen stand and a 253,800 yen listing, and the mean of "ドラクエ3 SFC" went from 4,395 to 1,882 yen. Pass `drop_outliers=false` for items that really sell at very different prices.
+- Both tools return `sold_between`, the oldest and newest sale date, so a price built on months-old sales is visible.
+
 ## 0.2.1 (2026-11-20)
 
 - Live tests now cover every site: for-sale search, sold search, listing details and the condition filter. A daily workflow runs them against the real sites and keeps an issue open while one is failing.

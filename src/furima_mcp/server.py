@@ -14,7 +14,17 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from . import __version__, watch
-from .core import errors_of, merge, percentile_of, pick_sites, price_stats, search_sites, verdict
+from .core import (
+    errors_of,
+    merge,
+    percentile_of,
+    pick_sites,
+    robust_stats,
+    search_sites,
+    sold_between,
+    split_outliers,
+    verdict,
+)
 from .http import new_client
 from .models import CONDITIONS, Condition, Query, SiteResult
 from .sites import SITES
@@ -29,7 +39,9 @@ Tips:
 - Search in Japanese. Product names, series names and model numbers work best
   (e.g. "ポケモンカード ピカチュウ 25th", "PS5 CFI-2000", "ドラクエ3 SFC 箱説").
 - Results are keyword matches and include accessories, bundles and junk. Use `exclude`
-  (e.g. ["ジャンク", "空箱", "ケースのみ"]) and price bounds to keep the comparison fair.
+  (e.g. ["ジャンク", "空箱", "ケースのみ", "まとめ"]) and price bounds to keep the comparison
+  fair. Sold statistics also leave out extreme prices by default (`outliers_dropped`).
+- Check `sold_between`: for rare items the sales can span many months.
 - Condition matters as much as the model. Pass `conditions` (e.g. ["new"] or
   ["like_new", "good"]) to compare like with like; sold_price_stats also breaks prices
   down by condition.
@@ -182,6 +194,14 @@ Sample = Annotated[
     int,
     Field(description="Sold listings to read per site before filtering.", ge=10, le=300),
 ]
+DropOutliers = Annotated[
+    bool,
+    Field(
+        description="Leave out prices far outside the rest (1.5 IQR beyond the quartiles, only "
+        "with 8+ sales): accessories, parts and bulk lots that match the keyword. Turn off "
+        "when the item genuinely sells at very different prices (e.g. graded cards)."
+    ),
+]
 
 
 @mcp.tool(annotations=READ_ONLY)
@@ -194,13 +214,16 @@ async def sold_price_stats(
     conditions: Conditions = None,
     exclude: Exclude = None,
     match_all_words: MatchAll = True,
+    drop_outliers: DropOutliers = True,
 ) -> dict:
     """What an item actually sells for: statistics over recently sold listings.
 
     Reads the most recent sold listings from Mercari, Yahoo! Auctions (final prices, plus
     sold Yahoo! Flea Market items) and Rakuma, and returns count, min, p25, median, p75,
     max and mean overall, per site and per condition, plus a few recent sales as examples.
-    Rakuma listings count toward by_condition only when `conditions` is set.
+    `outliers_dropped` counts prices left out of a group; `sold_between` gives the date
+    range of the dated sales, so old data is visible. Rakuma listings count toward
+    by_condition only when `conditions` is set.
     """
     results, listings = await _sold(
         query, sites, min_price, max_price, sample, conditions, exclude, match_all_words
@@ -213,9 +236,10 @@ async def sold_price_stats(
             by_condition[l.condition].append(l.price)
     return {
         "query": query,
-        "overall": price_stats([l.price for l in listings]),
-        "by_site": {s: price_stats(p) for s, p in by_site.items()},
-        "by_condition": {c: price_stats(p) for c, p in by_condition.items() if p},
+        "overall": robust_stats([l.price for l in listings], drop_outliers),
+        "by_site": {s: robust_stats(p, drop_outliers) for s, p in by_site.items()},
+        "by_condition": {c: robust_stats(p, drop_outliers) for c, p in by_condition.items() if p},
+        "sold_between": sold_between(listings),
         "recent_sales": [l.to_dict() for l in listings[:10]],
         "errors": errors_of(results),
     }
@@ -232,6 +256,7 @@ async def check_price(
     conditions: Conditions = None,
     exclude: Exclude = None,
     match_all_words: MatchAll = True,
+    drop_outliers: DropOutliers = True,
 ) -> dict:
     """Judge whether a price is cheap or expensive against recent sold prices.
 
@@ -243,13 +268,16 @@ async def check_price(
         query, sites, min_price, max_price, sample, conditions, exclude, match_all_words
     )
     prices = [l.price for l in listings]
+    if drop_outliers:
+        prices, _ = split_outliers(prices)
     pct = percentile_of(price, prices)
     return {
         "query": query,
         "price": price,
         "percentile": pct,
         "verdict": verdict(pct, len(prices)),
-        "sold_stats": price_stats(prices),
+        "sold_stats": robust_stats([l.price for l in listings], drop_outliers),
+        "sold_between": sold_between(listings),
         "errors": errors_of(results),
     }
 
